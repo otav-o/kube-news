@@ -12,9 +12,10 @@ pipeline {
     stage ("Push to DockerHub") {
       steps {
         script {
-          docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-login-otavio')
-          dockerapp.push('latest')
-          dockerapp.push("${env.BUILD_ID}")
+          docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-login-otavio') {
+            dockerapp.push('latest')
+            dockerapp.push("${env.BUILD_ID}")
+          }
         }
       }
     }
