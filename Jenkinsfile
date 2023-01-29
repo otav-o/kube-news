@@ -19,5 +19,12 @@ pipeline {
         }
       }
     }
+    stage ("Deploy Kubernetes") {
+      steps {
+        withKubeConfig([credentialsId: 'kubeconfig-file-digital-ocean']) {
+          sh 'kubectl apply -f ./src/deployment.yml' 
+        }
+      }
+    }
   }
 }
