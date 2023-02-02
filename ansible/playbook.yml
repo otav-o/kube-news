@@ -1,0 +1,96 @@
+- name: Instalação do Java
+  hosts: jenkins # foi definido no arquivo de inventário. Poderia ser "all"
+  remote_user: root
+  tasks:
+    - name: Instalando o Java
+      ansible.builtin.apt: # Documentação do Ansible Builtin
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
+
+- name: Instalação do Jenkins
+  hosts: jenkins
+  remote_user: root
+  tasks:
+    - name: Adicionar a chave do repositório
+      ansible.builtin.apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+        state: present
+
+    - name: Adicionando o repositório
+      ansible.builtin.apt_repository:
+        repo: "deb https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+
+    - name: Instalando o Jenkins
+      ansible.builtin.apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+##
+    - name: Obter a chave de primeiro acesso
+      ansible.builtin.command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: chave # o resultado do comando é armazenado nessa variável chave
+
+    - name: Exibir a chave de primeiro acesso ao Jenkins
+      ansible.builtin.debug:
+        msg: "{{ chave.stdout }}" # comentar estas duas tasks após o uso 
+##
+
+- name: Instalação do Docker
+  hosts: jenkins
+  remote_user: root
+  tasks:
+    - name: Instalação dos pré-requisitos
+      apt:
+        name: ca-certificates, curl, gnupg, lsb-release
+        state: latest
+        update_cache: yes
+    
+    - name: Adicionando a chave para o repositório APT
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+    
+    - name: Adicionando o repositório para instalar o Docker
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+
+    - name: Atualizando os repositórios e instalando o Docker
+      apt: update_cache=yes name=docker-ce state=latest
+
+    - name: Adicionar o usuário jenkins no grupo Docker
+      ansible.builtin.user:
+        name: jenkins
+        groups: docker
+        state: present
+        append: yes
+
+    - name: Reiniciar o Jenkins
+      ansible.builtin.service:
+        name: jenkins
+        state: restarted
+
+- name: Instalação do Kubeadm
+  hosts: jenkins
+  tasks:
+    - name: Instalando os pré-requisitos
+      ansible.builtin.apt: 
+        name: apt-transport-https, ca-certificates, curl
+        state: present
+
+    - name: Adicionar o repositório à lista de confiáveis
+      ansible.builtin.apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add specified repository into sources list using specified filename
+      ansible.builtin.apt_repository:
+        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+        filename: kubernetes
+
+    - name: Instalar kubectl
+      ansible.builtin.apt:
+        name: kubectl
